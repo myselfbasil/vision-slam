@@ -1,0 +1,41 @@
+# Git ignore file for ROS2 video-based SLAM project
+
+# Ignore any actual video files that might be large
+videos/*.mp4
+videos/*.avi
+videos/*.mov
+
+# Docker related
+.docker/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ROS2
+install/
+log/
+build/
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
