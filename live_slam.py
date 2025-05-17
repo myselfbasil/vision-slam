@@ -19,20 +19,43 @@ def generate_launch_description():
         description='Path to video file if using pre-recorded video'
     )
     
+    # Add debug level parameter
+    debug_arg = DeclareLaunchArgument(
+        'debug', 
+        default_value='true',
+        description='Enable debug output'
+    )
+    
     use_video = LaunchConfiguration('use_video')
     video_path = LaunchConfiguration('video_path')
+    debug = LaunchConfiguration('debug')
     
     # Full launch file configured for optimal Ubuntu Linux compatibility
     return LaunchDescription([
         # Launch arguments
         use_video_arg,
         video_path_arg,
+        debug_arg,
+        
+        # Topic Echo for Debugging - to see if camera data is actually being published
+        ExecuteProcess(
+            cmd=['ros2', 'topic', 'list'],
+            name='topic_list',
+            output='screen',
+            condition=IfCondition(debug)
+        ),
         
         # Live Camera Node - only run when not using video
         ExecuteProcess(
             cmd=['python3', '/ros2_ws/camera_node.py'],
             output='screen',
-            condition=UnlessCondition(use_video)
+            name='camera_node',
+            condition=UnlessCondition(use_video),
+            # Give it time to initialize
+            on_exit=[ExecuteProcess(
+                cmd=['sleep', '2'],
+                output='screen'
+            )]
         ),
         
         # Video Publisher Node - only run when using video
@@ -54,19 +77,33 @@ def generate_launch_description():
                 {'frame_id': 'camera_link'},
                 {'subscribe_depth': False},
                 {'subscribe_rgb': True},
+                {'subscribe_rgbd': False},
+                {'subscribe_stereo': False},
                 {'approx_sync': True},
-                {'Vis/MinInliers': 15},
+                {'queue_size': 20},  # Increase queue size for better sync
+                {'Vis/MinInliers': 10},  # Reduced for easier matching
                 {'Vis/RoiRatios': '0.03 0.03 0.04 0.04'},
-                {'Mem/ImagePreDecimation': 2},
-                {'Mem/ImagePostDecimation': 2},
-                # Parameters to improve live performance
-                {'Vis/EstimationType': '1'},  # 0=3D->3D, 1=3D->2D (PnP), 2=2D->2D
-                {'Vis/MaxDepth': '10.0'},     # Maximum depth of visual features
-                {'GFTT/MinDistance': '10.0'}, # Minimum distance between features
-                {'GFTT/QualityLevel': '0.002'}, # Quality level for feature extraction
-                {'Mem/STMSize': '30'},        # Short-term memory size
-                {'Kp/DetectorStrategy': '6'},  # 0=SURF, 1=SIFT, 2=ORB, 3=FAST/FREAK, 4=FAST/BRIEF, 5=GFTT/FREAK, 6=GFTT/BRIEF, 7=BRISK
-                {'Kp/RoiRatios': '0.03 0.03 0.04 0.04'} # ROI used to extract features (top, right, bottom, left)                
+                {'Mem/ImagePreDecimation': 1},  # Don't decimate to ensure frames are processed
+                {'Mem/ImagePostDecimation': 1},
+                # Parameters to improve live performance with webcams
+                {'Vis/EstimationType': '1'},  # 3D->2D (PnP) better for monocular
+                {'Vis/MaxDepth': '10.0'},
+                {'GFTT/MinDistance': '5.0'},  # Smaller distance to get more features
+                {'GFTT/QualityLevel': '0.001'},  # More sensitive feature detection
+                {'Mem/STMSize': '30'},
+                {'Kp/DetectorStrategy': '6'},  # GFTT/BRIEF works well for many scenarios
+                {'Kp/MaxFeatures': '1000'},  # More features 
+                {'Kp/RoiRatios': '0.03 0.03 0.04 0.04'},
+                # Debug parameters
+                {'Rtabmap/DetectionRate': '2.0'},  # Slower detection rate (better for webcams)
+                {'RGBD/CreateOccupancyGrid': 'false'},  # Disable occupancy grid creation for basic test
+                {'Rtabmap/TimeThr': '700'},  # More time for loop closure
+                {'Rtabmap/LoopThr': '0.11'},  # More permissive loop closure
+                {'Vis/CorType': '1'},  # 0=SURF 1=ORB
+                {'Vis/MaxFeatures': '1000'},  # Max visual features
+                {'Grid/RangeMax': '4.0'},  # Max range for grid mapping
+                {'Grid/CellSize': '0.05'},  # Grid cell size (5cm)
+                {'Reg/Force3DoF': 'true'}  # Force 2D mapping (easier for webcam)
             ],
             remappings=[
                 ('rgb/image', '/camera/image_raw'),
@@ -84,13 +121,30 @@ def generate_launch_description():
             parameters=[
                 {'subscribe_depth': False},
                 {'subscribe_rgb': True},
+                {'subscribe_rgbd': False},
+                {'subscribe_stereo': False},
+                {'subscribe_scan': False},
+                {'subscribe_scan_cloud': False},
+                {'subscribe_user_data': False},
                 {'subscribe_odom_info': False},
                 {'frame_id': 'camera_link'},
                 {'approx_sync': True},
+                {'queue_size': 20},
             ],
             remappings=[
                 ('rgb/image', '/camera/image_raw'),
                 ('rgb/camera_info', '/camera/camera_info'),
             ],
+        ),
+        
+        # Debug: Topic echo to verify camera image is published (only if debug=true)
+        ExecuteProcess(
+            cmd=['ros2', 'topic', 'echo', '/camera/image_raw', '--csv', '--once'],
+            output='screen',
+            condition=IfCondition(debug),
+            name='topic_echo',
+            on_exit=[ExecuteProcess(
+                cmd=['echo', 'If you see no output above, camera data is not being published']
+            )]
         ),
     ])

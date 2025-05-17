@@ -17,12 +17,27 @@ class CameraNode(Node):
         # OpenCV bridge
         self.bridge = CvBridge()
         
-        # Open camera device
-        self.get_logger().info(f"Opening camera device {camera_device}")
-        self.camera = cv2.VideoCapture(camera_device)
+        # Print available cameras for diagnostics
+        self.get_logger().info("Checking available cameras...")
+        import os
+        os.system("ls -l /dev/video*")
+        
+        # Try different camera backends
+        backends = [cv2.CAP_V4L2, cv2.CAP_ANY]
+        for backend in backends:
+            self.get_logger().info(f"Trying camera backend: {backend}")
+            # Open camera device
+            self.camera = cv2.VideoCapture(camera_device, backend)
+            if self.camera.isOpened():
+                self.get_logger().info(f"Successfully opened camera with backend {backend}")
+                break
+            else:
+                self.get_logger().warn(f"Failed to open camera with backend {backend}")
+        
         if not self.camera.isOpened():
-            self.get_logger().error(f"Failed to open camera device {camera_device}")
-            raise RuntimeError(f"Failed to open camera device {camera_device}")
+            self.get_logger().error(f"Failed to open any camera device {camera_device}")
+            # Don't raise exception, just report the error
+            self.get_logger().error("No camera available, will continue without camera feed")
             
         # Get camera properties
         self.width = int(self.camera.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -63,7 +78,18 @@ class CameraNode(Node):
         # If failed to read frame
         if not ret:
             self.get_logger().error("Failed to capture frame from camera")
-            return
+            # Try to create a test frame with diagnostic information
+            height, width = 480, 640
+            frame = np.zeros((height, width, 3), dtype=np.uint8)
+            cv2.putText(frame, "NO CAMERA FEED AVAILABLE", (50, height//2), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            cv2.putText(frame, "Check camera permissions", (80, height//2 + 40), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        else:
+            # Log if frame was captured successfully
+            if self.get_logger().get_effective_level() <= 20:  # Only log at INFO level or below
+                height, width = frame.shape[:2]
+                self.get_logger().info(f"Captured frame: {width}x{height}")
         
         # Get current timestamp
         now = self.get_clock().now().to_msg()
@@ -86,16 +112,27 @@ class CameraNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     
+    # Try to list available cameras
+    import os
+    os.system("echo 'Available video devices:'")
+    os.system("ls -l /dev/video*")
+    os.system("echo 'v4l2 device capabilities:'")
+    os.system("v4l2-ctl --list-devices || echo 'v4l2-ctl not available'")
+    
     # Default camera device (usually 0 for built-in webcam)
     camera_device = 0
     
     # Create and spin the node
+    print("Creating camera node...")
     node = CameraNode(camera_device)
     
     try:
+        print("Starting camera node...")
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
+    except Exception as e:
+        print(f"Error in camera node: {e}")
     finally:
         node.destroy_node()
         rclpy.shutdown()
