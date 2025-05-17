@@ -76,7 +76,11 @@ class RvizSlamNode(Node):
         
         # Current position (initially at origin)
         self.position = np.zeros(3)
-        self.orientation_quat = np.array([0, 0, 0, 1])  # Quaternion [x,y,z,w]
+        # Using simple floats for orientation to avoid numpy type issues
+        self.quat_x = 0.0
+        self.quat_y = 0.0
+        self.quat_z = 0.0
+        self.quat_w = 1.0
         
         # Map points (placeholder for now)
         self.map_points = []
@@ -189,7 +193,11 @@ Panels:
                             self.camera_pose.pose.position.x = self.position[0]
                             self.camera_pose.pose.position.y = self.position[1]
                             self.camera_pose.pose.position.z = self.position[2]
-                            self.camera_pose.pose.orientation.w = 1.0  # Identity rotation for now
+                            # Set proper quaternion values
+                            self.camera_pose.pose.orientation.w = float(1.0)  # Identity rotation for now
+                            self.camera_pose.pose.orientation.x = float(0.0)
+                            self.camera_pose.pose.orientation.y = float(0.0)
+                            self.camera_pose.pose.orientation.z = float(0.0)
                             
                             # Add to path for trajectory visualization
                             self.camera_path.header.stamp = now
@@ -257,13 +265,13 @@ Panels:
         t.child_frame_id = "camera_link"
         
         # Set the transform from map to camera
-        t.transform.translation.x = self.position[0]
-        t.transform.translation.y = self.position[1]
-        t.transform.translation.z = self.position[2]
-        t.transform.rotation.w = self.orientation_quat[3]
-        t.transform.rotation.x = self.orientation_quat[0]
-        t.transform.rotation.y = self.orientation_quat[1]
-        t.transform.rotation.z = self.orientation_quat[2]
+        t.transform.translation.x = float(self.position[0])
+        t.transform.translation.y = float(self.position[1])
+        t.transform.translation.z = float(self.position[2])
+        t.transform.rotation.w = float(1.0)  # Identity quaternion
+        t.transform.rotation.x = float(0.0)
+        t.transform.rotation.y = float(0.0)
+        t.transform.rotation.z = float(0.0)
         
         # Broadcast the transform
         self.tf_broadcaster.sendTransform(t)
