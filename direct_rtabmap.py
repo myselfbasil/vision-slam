@@ -171,61 +171,17 @@ class DirectCameraNode(Node):
         
         self.get_logger().info("Launching RTAB-Map in display mode...")
         
-        # First try with rtabmap directly rather than rtabmap_viz
-        try:
-            # Create separate bash script to avoid subprocess shell issues
-            viewer_script = """
-#!/bin/bash
-
-# Set up environment
-source /opt/ros/humble/setup.bash
-
-# Export display variables
-export QT_X11_NO_MITSHM=1
-export XDG_RUNTIME_DIR=/tmp/runtime-root
-
-# Run rtabmap in localization mode
-ros2 run rtabmap_util rtabmap --localization --ros-args \
-  -p subscribe_depth:=false \
-  -p subscribe_rgb:=true \
-  -p subscribe_stereo:=false \
-  -p subscribe_scan:=false \
-  -p approx_sync:=true \
-  -p Vis/MaxFeatures:=600 \
-  -p Grid/CellSize:=0.05 \
-  -p Reg/Strategy:=0 \
-  -p RGBD/OptimizeMaxError:=1.0 \
-  -r rgb/image:=/camera/image_raw \
-  -r rgb/camera_info:=/camera/camera_info
-"""
-            
-            # Save to temporary file
-            script_path = "/tmp/launch_rtabmap.sh"
-            with open(script_path, "w") as f:
-                f.write(viewer_script)
-            
-            # Make executable
-            os.chmod(script_path, 0o755)
-            
-            self.get_logger().info(f"Running RTAB-Map from script: {script_path}")
-            
-            # Run in a new process
-            subprocess.Popen([script_path], shell=False)
-            
-        except Exception as e:
-            self.get_logger().error(f"Error launching RTAB-Map: {str(e)}")
-            
-            # Try alternate method with just rtabmap_viz as fallback
-            self.get_logger().info("Trying fallback launch method...")
-            
-            try:
-                # Try with direct display settings
-                env = os.environ.copy()
-                env["QT_DEBUG_PLUGINS"] = "1"  # Debug Qt plugin issues
-                env["QT_X11_NO_MITSHM"] = "1"
-                env["XDG_RUNTIME_DIR"] = "/tmp/runtime-root"
-                
-                cmd = [
+        # Try with direct display settings
+        env = os.environ.copy()
+        env["QT_X11_NO_MITSHM"] = "1"
+        env["XDG_RUNTIME_DIR"] = "/tmp/runtime-root"
+        
+        # Try methods in order of reliability
+        methods = [
+            # Method 1: rtabmap_viz directly
+            {
+                "name": "rtabmap_viz direct",
+                "cmd": [
                     "ros2", "run", "rtabmap_viz", "rtabmap_viz",
                     "--ros-args",
                     "-p", "subscribe_depth:=false",
@@ -236,14 +192,65 @@ ros2 run rtabmap_util rtabmap --localization --ros-args \
                     "-r", "rgb/image:=/camera/image_raw",
                     "-r", "rgb/camera_info:=/camera/camera_info"
                 ]
+            },
+            # Method 2: rtabmap directly
+            {
+                "name": "rtabmap direct",
+                "cmd": [
+                    "ros2", "run", "rtabmap_slam", "rtabmap",
+                    "--ros-args",
+                    "-p", "subscribe_depth:=false",
+                    "-p", "subscribe_rgb:=true",
+                    "-p", "subscribe_stereo:=false",
+                    "-p", "subscribe_scan:=false",
+                    "-p", "approx_sync:=true",
+                    "-p", "Vis/MaxFeatures:=600",
+                    "-p", "Vis/EstimationType:=0", 
+                    "-p", "RGBD/OptimizeMaxError:=1.0", 
+                    "-r", "rgb/image:=/camera/image_raw",
+                    "-r", "rgb/camera_info:=/camera/camera_info"
+                ]
+            },
+            # Method 3: shell command as last resort
+            {
+                "name": "shell command",
+                "cmd": [
+                    "bash", "-c", 
+                    "source /opt/ros/humble/setup.bash && " +
+                    "export QT_X11_NO_MITSHM=1 && " +
+                    "export XDG_RUNTIME_DIR=/tmp/runtime-root && " +
+                    "export QT_DEBUG_PLUGINS=1 && " +
+                    "ros2 run rtabmap_viz rtabmap_viz --ros-args " +
+                    "-p subscribe_depth:=false -p subscribe_rgb:=true " +
+                    "-r rgb/image:=/camera/image_raw -r rgb/camera_info:=/camera/camera_info"
+                ]
+            }
+        ]
+        
+        # Try each method until one works
+        for method in methods:
+            try:
+                self.get_logger().info(f"Trying method: {method['name']}")
+                self.get_logger().info(f"Running: {' '.join(method['cmd'])}")
                 
-                self.get_logger().info(f"Running fallback RTAB-Map viewer with command: {' '.join(cmd)}")
+                # Run detached
+                process = subprocess.Popen(method['cmd'], env=env, 
+                                         stdout=subprocess.PIPE, 
+                                         stderr=subprocess.PIPE)
                 
-                # Run detached with env variables
-                subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                # Wait briefly to see if it crashes immediately
+                time.sleep(1)
                 
-            except Exception as e2:
-                self.get_logger().error(f"Fallback method also failed: {str(e2)}")
+                # Check if still running
+                if process.poll() is None:
+                    self.get_logger().info(f"Method {method['name']} appears to be working")
+                    break
+                else:
+                    self.get_logger().warn(f"Method {method['name']} failed immediately")
+            except Exception as e:
+                self.get_logger().error(f"Error with method {method['name']}: {str(e)}")
+        
+        self.get_logger().info("RTAB-Map launch attempted, continuing with camera streaming")
 
 def main(args=None):
     rclpy.init(args=args)
