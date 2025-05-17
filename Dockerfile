@@ -1,4 +1,4 @@
-# Base image for ROS2 with RTABMap (compatible with both ARM64 and x86_64)
+# Base image for ROS2 with RTABMap for Ubuntu live SLAM
 FROM ros:humble-perception
 
 # Avoid interactive prompts during package installation
@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-tf2-ros \
     ros-humble-rtabmap \
     ros-humble-rtabmap-ros \
+    v4l-utils \
+    libv4l-dev \
+    usbutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Install additional Python packages
@@ -27,11 +30,13 @@ RUN pip3 install --no-cache-dir \
 
 # Copy the Python scripts
 COPY video_publisher.py /ros2_ws/video_publisher.py
-COPY video_slam.py /ros2_ws/video_slam.py
+COPY camera_node.py /ros2_ws/camera_node.py
+COPY live_slam.py /ros2_ws/live_slam.py
 
 # Make the Python scripts executable
 RUN chmod +x /ros2_ws/video_publisher.py && \
-    chmod +x /ros2_ws/video_slam.py
+    chmod +x /ros2_ws/camera_node.py && \
+    chmod +x /ros2_ws/live_slam.py
 
 # Set up environment
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
@@ -43,4 +48,4 @@ ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && exec \"$@\"
 RUN mkdir -p /videos
 
 # Default command that runs our vision-based SLAM system
-CMD ["bash", "-c", "echo 'To start vision-based SLAM with a video file, run: ros2 launch /ros2_ws/video_slam.py' && bash"]
+CMD ["bash", "-c", "echo 'To start live SLAM: ros2 launch /ros2_ws/live_slam.py\nTo start with video: ros2 launch /ros2_ws/live_slam.py use_video:=true video_path:=/videos/your_video.mp4' && bash"]

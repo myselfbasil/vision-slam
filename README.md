@@ -1,67 +1,76 @@
-# ROS2 Video-Based SLAM System for Linux
+# ROS2 Live Camera SLAM System for Ubuntu
 
-This project provides a Docker setup for running vision-based SLAM (Simultaneous Localization and Mapping) using pre-recorded videos with ROS2 and RTAB-Map on Linux systems. This approach allows for consistent testing and development without requiring special hardware.
+This project provides a Docker setup for running vision-based SLAM (Simultaneous Localization and Mapping) using either a live camera or pre-recorded videos with ROS2 and RTAB-Map on Ubuntu systems. You can perform real-time mapping of your environment using just a webcam.
 
 ## Prerequisites
 
-- Linux system with Docker installed
-- A pre-recorded video file for SLAM processing (MP4 format recommended)
-- X11 display server (standard on most Linux distributions)
+- Ubuntu system with Docker installed
+- USB webcam or built-in camera
+- X11 display server (standard on Ubuntu)
+- (Optional) Pre-recorded video files for testing
 
 ## Project Files
 
-- **Dockerfile**: Sets up the ROS2 environment with RTAB-Map for video-based SLAM
-- **video_publisher.py**: ROS2 node that reads a video file and publishes frames to ROS2 topics
-- **video_slam.py**: Launch file that coordinates the video publisher and RTAB-Map for SLAM
+- **Dockerfile**: Sets up the ROS2 environment with RTAB-Map for live SLAM
+- **camera_node.py**: ROS2 node that captures frames from a live camera
+- **video_publisher.py**: ROS2 node that reads a video file (for testing)
+- **live_slam.py**: Launch file that coordinates camera input and RTAB-Map
 
 ## Setting Up and Running the System
 
-### 1. Prepare Your Video File
-
-Place your pre-recorded video file in a videos directory:
+### 1. Clone the Repository
 
 ```bash
-mkdir -p videos
-# Copy your video file to this directory
-cp your-video-file.mp4 videos/trial_video.mp4
+git clone https://github.com/myselfbasil/vision-slam.git
+cd vision-slam
 ```
 
 ### 2. Build the Docker Image
 
 ```bash
-docker build -t ros2-video-slam .
+docker build -t ros2-live-slam .
 ```
 
 ### 3. Run the Docker Container
 
-On Linux, X11 forwarding works seamlessly with Docker. Run the container with:
+On Ubuntu, we need to give the Docker container access to the camera device. Run the container with:
 
 ```bash
 # Allow X server connections from localhost
 xhost +local:docker
 
-# Run the Docker container with X11 forwarding
+# Run the Docker container with camera access and X11 forwarding
 docker run -it --rm \
   --network=host \
+  --privileged \
+  --device=/dev/video0:/dev/video0 \
   -e DISPLAY=$DISPLAY \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
   -v $(pwd)/videos:/videos \
-  ros2-video-slam
+  ros2-live-slam
 ```
 
-### 4. Launch the SLAM System
+Note: If your camera is not at `/dev/video0`, you can find the correct device with `ls -l /dev/video*`
 
-Inside the container, start the SLAM system:
+### 4. Launch the Live SLAM System
+
+Inside the container, start the live SLAM system:
 
 ```bash
-# Start the complete SLAM system with visualization
-ros2 launch /ros2_ws/video_slam.py
+# Start the SLAM system with the live camera
+ros2 launch /ros2_ws/live_slam.py
 ```
 
 The SLAM visualization will appear automatically in separate windows showing:
-1. The camera feed from your video
+1. The live camera feed
 2. Feature tracking visualization
 3. The map being built in real-time
+
+If you want to test with a pre-recorded video instead, use:
+
+```bash
+ros2 launch /ros2_ws/live_slam.py use_video:=true video_path:=/videos/your_video.mp4
+```
 
 ## How Video-Based SLAM Works
 
@@ -79,8 +88,8 @@ The system uses RTAB-Map's monocular SLAM capabilities to perform:
 You can also run each component separately for debugging:
 
 ```bash
-# In one terminal (inside the container)
-python3 /ros2_ws/video_publisher.py --video /videos/trial_video.mp4
+# In one terminal (inside the container) - run the camera node
+python3 /ros2_ws/camera_node.py
 
 # In another terminal (inside the container) - run the SLAM processing
 ros2 run rtabmap_slam rtabmap \
@@ -93,17 +102,41 @@ ros2 run rtabmap_viz rtabmap_viz \
   -r rgb/image:=/camera/image_raw -r rgb/camera_info:=/camera/camera_info
 ```
 
+Or with a video file instead of the camera:
+
+```bash
+python3 /ros2_ws/video_publisher.py --video /videos/your_video.mp4
+```
+
 ## Tips for Good SLAM Results
 
-- Use videos with good lighting and texture-rich environments
-- Camera movement should be smooth and not too fast
-- Videos with loop closures (revisiting the same place) work best
-- Using calibrated camera parameters improves accuracy
+- Ensure good lighting in your environment
+- Move the camera slowly and smoothly
+- Include distinctive visual features in the scene (posters, objects, furniture)
+- Create loop closures by revisiting the same place from different angles
+- For best results, calibrate your camera (using the ROS camera_calibration package)
+
+## Camera Calibration (Optional but Recommended)
+
+For optimal SLAM performance, calibrate your camera:
+
+```bash
+# Inside the Docker container, install calibration tools
+apt update && apt install -y ros-humble-camera-calibration
+
+# Run the calibration with a checkerboard pattern
+ros2 run camera_calibration cameracalibrator --size 8x6 --square 0.108 image:=/camera/image_raw camera:=/camera/camera_info
+```
+
+Follow the on-screen instructions to calibrate. After calibration, update the camera parameters in camera_node.py.
 
 ## Troubleshooting
 
-- If visualization doesn't appear, make sure X11 forwarding is working properly (`xhost +local:docker`)
-- If RTAB-Map reports no data received, check the topic names and ensure the video publisher is running
-- If SLAM results are poor, try a different video with clearer features and slower movement
-- For performance issues, adjust the `Mem/ImagePreDecimation` parameter in the launch file to a higher value
+- If the camera isn't detected, check with `ls -l /dev/video*` and update the --device parameter
+- If visualization doesn't appear, make sure X11 forwarding is working (`xhost +local:docker`)
+- If you see errors about cv_bridge or numpy, try rebuilding the Docker image
+- For performance issues on slower computers, adjust parameters in live_slam.py:
+  - Increase `Mem/ImagePreDecimation` to 4
+  - Increase `Mem/ImagePostDecimation` to 4
+  - Set `Vis/FeatureType` to 3 (FAST detector) for faster processing
 
