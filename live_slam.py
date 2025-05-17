@@ -29,12 +29,9 @@ def generate_launch_description():
         video_path_arg,
         
         # Live Camera Node - only run when not using video
-        Node(
-            package='vision_slam',  # Update with your package name if different
-            executable='camera_node.py',
-            name='camera_node',
+        ExecuteProcess(
+            cmd=['python3', '/ros2_ws/camera_node.py'],
             output='screen',
-            emulate_tty=True,
             condition=UnlessCondition(use_video)
         ),
         
