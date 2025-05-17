@@ -38,6 +38,7 @@ COPY troubleshoot_camera.md /ros2_ws/troubleshoot_camera.md
 COPY flexible_camera.py /ros2_ws/flexible_camera.py
 COPY direct_camera_access.py /ros2_ws/direct_camera_access.py
 COPY fix_permissions.sh /ros2_ws/fix_permissions.sh
+COPY direct_rtabmap.py /ros2_ws/direct_rtabmap.py
 
 # Make the Python scripts executable
 RUN chmod +x /ros2_ws/video_publisher.py && \
@@ -47,7 +48,8 @@ RUN chmod +x /ros2_ws/video_publisher.py && \
     chmod +x /ros2_ws/camera_view.py && \
     chmod +x /ros2_ws/flexible_camera.py && \
     chmod +x /ros2_ws/direct_camera_access.py && \
-    chmod +x /ros2_ws/fix_permissions.sh
+    chmod +x /ros2_ws/fix_permissions.sh && \
+    chmod +x /ros2_ws/direct_rtabmap.py
 
 # Set up environment
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
@@ -59,4 +61,4 @@ ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && exec \"$@\"
 RUN mkdir -p /videos
 
 # Default command that runs our vision-based SLAM system
-CMD ["bash", "-c", "echo 'To start live SLAM: ros2 launch /ros2_ws/live_slam.py\nTo start with video: ros2 launch /ros2_ws/live_slam.py use_video:=true video_path:=/videos/your_video.mp4\n\nDiagnostic commands:\n- Test camera directly: python3 /ros2_ws/test_camera.py\n- Flexible camera node: python3 /ros2_ws/flexible_camera.py\n- Direct camera test: python3 /ros2_ws/direct_camera_access.py\n- View camera feed: python3 /ros2_ws/camera_view.py\n- More troubleshooting: cat /ros2_ws/troubleshoot_camera.md' && bash"]
+CMD ["bash", "-c", "echo '\n\033[1;32mVision-Based SLAM System\033[0m\n\n\033[1;33mMain Commands:\033[0m\n- All-in-one SLAM: \033[1;36mpython3 /ros2_ws/direct_rtabmap.py\033[0m (Recommended)\n- Launch with ROS2: \033[1;36mros2 launch /ros2_ws/live_slam.py\033[0m\n- Start with video: \033[1;36mros2 launch /ros2_ws/live_slam.py use_video:=true video_path:=/videos/your_video.mp4\033[0m\n\n\033[1;33mDiagnostic Commands:\033[0m\n- Test camera: \033[1;36mpython3 /ros2_ws/test_camera.py\033[0m\n- Flexible camera: \033[1;36mpython3 /ros2_ws/flexible_camera.py\033[0m\n- View camera feed: \033[1;36mpython3 /ros2_ws/camera_view.py\033[0m\n- Direct camera test: \033[1;36mpython3 /ros2_ws/direct_camera_access.py\033[0m\n\n\033[1;33mTroubleshooting:\033[0m\n- Camera issues: \033[1;36mcat /ros2_ws/troubleshoot_camera.md\033[0m\n' && bash"]
