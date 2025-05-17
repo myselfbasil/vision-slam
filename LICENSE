@@ -1,0 +1,24 @@
+Vision-Based SLAM System Open Source License
+
+Copyright (c) 2025 Basil Shaji
+
+This software and associated documentation files (the "Software") are provided
+for educational, academic, and non-commercial purposes. Permission is granted to
+anyone obtaining a copy of this Software to use, copy, modify, and distribute the
+Software, subject to the following conditions:
+
+1. The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+2. The Software may NOT be sold, licensed, or used for commercial gain without explicit written permission from the copyright holder.
+
+3. The Software may NOT be used for unethical purposes, including but not limited to surveillance without consent, invasion of privacy, or any activity that may cause harm to individuals or communities.
+
+4. Any academic work, publication, or project that uses this Software or a derivative of it must cite: "Vision-Based SLAM System by Basil Shaji  (https://github.com/myselfbasil/vision-slam)"
+
+5. Derivative works must also be shared under these same license terms.
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
