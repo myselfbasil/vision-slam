@@ -7,92 +7,41 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Set up environment
 WORKDIR /ros2_ws
 
-# Install ROS dependencies and tools
+# Install essential dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
-    ros-humble-cv-bridge \
-    ros-humble-image-transport \
-    ros-humble-tf2-ros \
-    ros-humble-rtabmap \
-    ros-humble-rtabmap-ros \
     # Camera access packages
     v4l-utils \
     libv4l-dev \
     usbutils \
-    # RViz and visualization packages
-    ros-humble-rviz2 \
-    ros-humble-rviz-common \
-    ros-humble-rviz-default-plugins \
-    ros-humble-nav2-rviz-plugins \
-    # Qt and X11 dependencies for visualization
-    libqt5gui5 \
-    libqt5widgets5 \
-    libqt5core5a \
+    # Minimal X11/OpenCV display dependencies
     libgl1-mesa-glx \
     libgl1-mesa-dri \
     mesa-utils \
-    libxcb-icccm4 \
-    libxcb-image0 \
-    libxcb-keysyms1 \
-    libxcb-randr0 \
-    libxcb-render-util0 \
-    libxcb-xinerama0 \
-    libxcb-xkb1 \
-    libxkbcommon-x11-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install additional Python packages
-# Use fixed NumPy version for compatibility with cv_bridge
+# Install Python packages
 RUN pip3 install --no-cache-dir \
-    numpy==1.24.0 \
     opencv-python \
-    matplotlib \
-    argparse
+    numpy \
+    matplotlib
 
-# Copy the Python scripts
-COPY video_publisher.py /ros2_ws/video_publisher.py
-COPY camera_node.py /ros2_ws/camera_node.py
-COPY live_slam.py /ros2_ws/live_slam.py
-COPY test_camera.py /ros2_ws/test_camera.py
-COPY camera_view.py /ros2_ws/camera_view.py
-COPY troubleshoot_camera.md /ros2_ws/troubleshoot_camera.md
-COPY flexible_camera.py /ros2_ws/flexible_camera.py
-COPY direct_camera_access.py /ros2_ws/direct_camera_access.py
-COPY fix_permissions.sh /ros2_ws/fix_permissions.sh
-COPY direct_rtabmap.py /ros2_ws/direct_rtabmap.py
-COPY simple_visualizer.py /ros2_ws/simple_visualizer.py
-COPY rviz_slam.py /ros2_ws/rviz_slam.py
-COPY opencv_slam.py /ros2_ws/opencv_slam.py
+# Copy the essential scripts
 COPY integrated_slam.py /ros2_ws/integrated_slam.py
+COPY test_camera.py /ros2_ws/test_camera.py
+COPY README.md /ros2_ws/README.md
 
 # Make the Python scripts executable
-RUN chmod +x /ros2_ws/video_publisher.py && \
-    chmod +x /ros2_ws/camera_node.py && \
-    chmod +x /ros2_ws/live_slam.py && \
-    chmod +x /ros2_ws/test_camera.py && \
-    chmod +x /ros2_ws/camera_view.py && \
-    chmod +x /ros2_ws/flexible_camera.py && \
-    chmod +x /ros2_ws/direct_camera_access.py && \
-    chmod +x /ros2_ws/fix_permissions.sh && \
-    chmod +x /ros2_ws/direct_rtabmap.py && \
-    chmod +x /ros2_ws/simple_visualizer.py && \
-    chmod +x /ros2_ws/rviz_slam.py && \
-    chmod +x /ros2_ws/opencv_slam.py && \
-    chmod +x /ros2_ws/integrated_slam.py
+RUN chmod +x /ros2_ws/integrated_slam.py && \
+    chmod +x /ros2_ws/test_camera.py
 
 # Set up environment
-RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 
-# Configure environment variables for Qt
-ENV QT_X11_NO_MITSHM=1
-ENV XDG_RUNTIME_DIR=/tmp/runtime-root
-
-# Create required directories
-RUN mkdir -p /videos /tmp/runtime-root
-RUN chmod 700 /tmp/runtime-root
+# Create videos directory for optional video files
+RUN mkdir -p /videos
 
 # Set entrypoint
-ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && exec \"$@\"", "--"]
+ENTRYPOINT ["/bin/bash", "-c", "exec \"$@\"", "--"]
 
 # Default command that runs our vision-based SLAM system
-CMD ["bash", "-c", "echo '\n\033[1;32mVision-Based SLAM System\033[0m\n\n\033[1;33mMain Command (RECOMMENDED):\033[0m\n- \033[1;36mpython3 /ros2_ws/integrated_slam.py\033[0m - Completely standalone solution with no ROS dependencies\n\n\033[1;33mAlternative Commands:\033[0m\n- OpenCV visualization: \033[1;36mpython3 /ros2_ws/opencv_slam.py\033[0m\n- RViz visualization: \033[1;36mpython3 /ros2_ws/rviz_slam.py\033[0m (requires X11)\n- Simple visualization: \033[1;36mpython3 /ros2_ws/simple_visualizer.py\033[0m\n- RTAB-Map: \033[1;36mpython3 /ros2_ws/direct_rtabmap.py\033[0m (requires Qt)\n- Launch with ROS2: \033[1;36mros2 launch /ros2_ws/live_slam.py\033[0m\n- Start with video: \033[1;36mros2 launch /ros2_ws/live_slam.py use_video:=true video_path:=/videos/your_video.mp4\033[0m\n\n\033[1;33mDiagnostic Commands:\033[0m\n- Test camera: \033[1;36mpython3 /ros2_ws/test_camera.py\033[0m\n- View camera feed: \033[1;36mpython3 /ros2_ws/camera_view.py\033[0m\n' && bash"]
+CMD ["bash", "-c", "echo '\n\033[1;32mVision-Based SLAM System\033[0m\n\n\033[1;33mCommands:\033[0m\n- Start SLAM visualization: \033[1;36mpython3 /ros2_ws/integrated_slam.py\033[0m\n- Test camera only: \033[1;36mpython3 /ros2_ws/test_camera.py\033[0m\n\n' && bash"]
