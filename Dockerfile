@@ -54,6 +54,7 @@ COPY flexible_camera.py /ros2_ws/flexible_camera.py
 COPY direct_camera_access.py /ros2_ws/direct_camera_access.py
 COPY fix_permissions.sh /ros2_ws/fix_permissions.sh
 COPY direct_rtabmap.py /ros2_ws/direct_rtabmap.py
+COPY simple_visualizer.py /ros2_ws/simple_visualizer.py
 
 # Make the Python scripts executable
 RUN chmod +x /ros2_ws/video_publisher.py && \
@@ -64,7 +65,8 @@ RUN chmod +x /ros2_ws/video_publisher.py && \
     chmod +x /ros2_ws/flexible_camera.py && \
     chmod +x /ros2_ws/direct_camera_access.py && \
     chmod +x /ros2_ws/fix_permissions.sh && \
-    chmod +x /ros2_ws/direct_rtabmap.py
+    chmod +x /ros2_ws/direct_rtabmap.py && \
+    chmod +x /ros2_ws/simple_visualizer.py
 
 # Set up environment
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
@@ -81,4 +83,4 @@ RUN chmod 700 /tmp/runtime-root
 ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && exec \"$@\"", "--"]
 
 # Default command that runs our vision-based SLAM system
-CMD ["bash", "-c", "echo '\n\033[1;32mVision-Based SLAM System\033[0m\n\n\033[1;33mMain Commands:\033[0m\n- All-in-one SLAM: \033[1;36mpython3 /ros2_ws/direct_rtabmap.py\033[0m (Recommended)\n- Launch with ROS2: \033[1;36mros2 launch /ros2_ws/live_slam.py\033[0m\n- Start with video: \033[1;36mros2 launch /ros2_ws/live_slam.py use_video:=true video_path:=/videos/your_video.mp4\033[0m\n\n\033[1;33mDiagnostic Commands:\033[0m\n- Test camera: \033[1;36mpython3 /ros2_ws/test_camera.py\033[0m\n- Flexible camera: \033[1;36mpython3 /ros2_ws/flexible_camera.py\033[0m\n- View camera feed: \033[1;36mpython3 /ros2_ws/camera_view.py\033[0m\n- Direct camera test: \033[1;36mpython3 /ros2_ws/direct_camera_access.py\033[0m\n\n\033[1;33mTroubleshooting:\033[0m\n- Camera issues: \033[1;36mcat /ros2_ws/troubleshoot_camera.md\033[0m\n' && bash"]
+CMD ["bash", "-c", "echo '\n\033[1;32mVision-Based SLAM System\033[0m\n\n\033[1;33mMain Commands:\033[0m\n- Simple visualization: \033[1;36mpython3 /ros2_ws/simple_visualizer.py\033[0m (Best for university systems)\n- All-in-one SLAM: \033[1;36mpython3 /ros2_ws/direct_rtabmap.py\033[0m (Full RTAB-Map)\n- Launch with ROS2: \033[1;36mros2 launch /ros2_ws/live_slam.py\033[0m\n- Start with video: \033[1;36mros2 launch /ros2_ws/live_slam.py use_video:=true video_path:=/videos/your_video.mp4\033[0m\n\n\033[1;33mDiagnostic Commands:\033[0m\n- Test camera: \033[1;36mpython3 /ros2_ws/test_camera.py\033[0m\n- Flexible camera: \033[1;36mpython3 /ros2_ws/flexible_camera.py\033[0m\n- View camera feed: \033[1;36mpython3 /ros2_ws/camera_view.py\033[0m\n- Direct camera test: \033[1;36mpython3 /ros2_ws/direct_camera_access.py\033[0m\n\n\033[1;33mTroubleshooting:\033[0m\n- Camera issues: \033[1;36mcat /ros2_ws/troubleshoot_camera.md\033[0m\n' && bash"]
