@@ -3,11 +3,11 @@ FROM ros:humble-perception
 # Avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install curl and setup new ROS 2 GPG key
-RUN apt-get update && apt-get install -y curl gnupg2 && \
-    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.key | apt-key add - && \
-    echo "deb http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" > /etc/apt/sources.list.d/ros2.list && \
-    apt-get update && apt-get install -y curl
+# Install wget and setup new ROS 2 GPG key
+RUN apt-get update && apt-get install -y wget gnupg2 && \
+    wget -O /usr/share/keyrings/ros-archive-keyring.gpg https://raw.githubusercontent.com/ros/rosdistro/master/ros.key && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" > /etc/apt/sources.list.d/ros2.list && \
+    apt-get update
 
 # Set up environment
 WORKDIR /ros2_ws
