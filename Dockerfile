@@ -3,19 +3,21 @@ FROM ros:humble-perception
 # Avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install wget and setup new ROS 2 GPG key
+# Install dependencies and setup new ROS 2 GPG key
 RUN apt-get update && apt-get install -y wget gnupg2 && \
-    wget -O /usr/share/keyrings/ros-archive-keyring.gpg https://raw.githubusercontent.com/ros/rosdistro/master/ros.key && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" > /etc/apt/sources.list.d/ros2.list && \
-    apt-get update
+    # Remove any old ROS keys and sources
+    rm -f /etc/apt/sources.list.d/ros2.list && \
+    # Add the new ROS 2 key from keyserver
+    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys F42ED6FBAB17C654 && \
+    # Add ROS 2 repository
+    echo "deb http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" > /etc/apt/sources.list.d/ros2.list && \
+    apt-get update || true
 
 # Set up environment
 WORKDIR /ros2_ws
 
-# Update ROS2 key and install essential dependencies
-RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null && \
-    apt-get update && apt-get install -y --no-install-recommends \
+# Install essential dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     # Camera access packages
     v4l-utils \
