@@ -3,6 +3,8 @@ FROM ros:humble-perception
 # Avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
+RUN apt-get update && apt-get install -y curl
+
 # Set up environment
 WORKDIR /ros2_ws
 
